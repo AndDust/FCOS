@@ -5,114 +5,117 @@ import os
 
 
 class DatasetCatalog(object):
-    DATA_DIR = "datasets"
+    DATA_DIR = "/home/nku524/dl/dataset/"
     DATASETS = {
         "coco_2017_train": {
-            "img_dir": "coco/train2017",
+            "img_dir": "coco/coco_2017_train",
             "ann_file": "coco/annotations/instances_train2017.json"
         },
         "coco_2017_val": {
-            "img_dir": "coco/val2017",
+            "img_dir": "coco/coco_2017_val",
             "ann_file": "coco/annotations/instances_val2017.json"
         },
         "coco_2017_test_dev": {
-            "img_dir": "coco/test2017",
+            "img_dir": "coco/coco_2017_test",
             "ann_file": "coco/annotations/image_info_test-dev2017.json"
-        },
-        "coco_2014_train": {
-            "img_dir": "coco/train2014",
-            "ann_file": "coco/annotations/instances_train2014.json"
-        },
-        "coco_2014_val": {
-            "img_dir": "coco/val2014",
-            "ann_file": "coco/annotations/instances_val2014.json"
-        },
-        "coco_2014_minival": {
-            "img_dir": "coco/val2014",
-            "ann_file": "coco/annotations/instances_minival2014.json"
-        },
-        "coco_2014_valminusminival": {
-            "img_dir": "coco/val2014",
-            "ann_file": "coco/annotations/instances_valminusminival2014.json"
-        },
-        "keypoints_coco_2014_train": {
-            "img_dir": "coco/train2014",
-            "ann_file": "coco/annotations/person_keypoints_train2014.json",
-        },
-        "keypoints_coco_2014_val": {
-            "img_dir": "coco/val2014",
-            "ann_file": "coco/annotations/person_keypoints_val2014.json"
-        },
-        "keypoints_coco_2014_minival": {
-            "img_dir": "coco/val2014",
-            "ann_file": "coco/annotations/person_keypoints_minival2014.json",
-        },
-        "keypoints_coco_2014_valminusminival": {
-            "img_dir": "coco/val2014",
-            "ann_file": "coco/annotations/person_keypoints_valminusminival2014.json",
-        },
-        "voc_2007_train": {
-            "data_dir": "voc/VOC2007",
-            "split": "train"
-        },
-        "voc_2007_train_cocostyle": {
-            "img_dir": "voc/VOC2007/JPEGImages",
-            "ann_file": "voc/VOC2007/Annotations/pascal_train2007.json"
-        },
-        "voc_2007_val": {
-            "data_dir": "voc/VOC2007",
-            "split": "val"
-        },
-        "voc_2007_val_cocostyle": {
-            "img_dir": "voc/VOC2007/JPEGImages",
-            "ann_file": "voc/VOC2007/Annotations/pascal_val2007.json"
-        },
-        "voc_2007_test": {
-            "data_dir": "voc/VOC2007",
-            "split": "test"
-        },
-        "voc_2007_test_cocostyle": {
-            "img_dir": "voc/VOC2007/JPEGImages",
-            "ann_file": "voc/VOC2007/Annotations/pascal_test2007.json"
-        },
-        "voc_2012_train": {
-            "data_dir": "voc/VOC2012",
-            "split": "train"
-        },
-        "voc_2012_train_cocostyle": {
-            "img_dir": "voc/VOC2012/JPEGImages",
-            "ann_file": "voc/VOC2012/Annotations/pascal_train2012.json"
-        },
-        "voc_2012_val": {
-            "data_dir": "voc/VOC2012",
-            "split": "val"
-        },
-        "voc_2012_val_cocostyle": {
-            "img_dir": "voc/VOC2012/JPEGImages",
-            "ann_file": "voc/VOC2012/Annotations/pascal_val2012.json"
-        },
-        "voc_2012_test": {
-            "data_dir": "voc/VOC2012",
-            "split": "test"
-            # PASCAL VOC2012 doesn't made the test annotations available, so there's no json annotation
-        },
-        "cityscapes_fine_instanceonly_seg_train_cocostyle": {
-            "img_dir": "cityscapes/images",
-            "ann_file": "cityscapes/annotations/instancesonly_filtered_gtFine_train.json"
-        },
-        "cityscapes_fine_instanceonly_seg_val_cocostyle": {
-            "img_dir": "cityscapes/images",
-            "ann_file": "cityscapes/annotations/instancesonly_filtered_gtFine_val.json"
-        },
-        "cityscapes_fine_instanceonly_seg_test_cocostyle": {
-            "img_dir": "cityscapes/images",
-            "ann_file": "cityscapes/annotations/instancesonly_filtered_gtFine_test.json"
         }
+        # "coco_2014_train": {
+        #     "img_dir": "coco/train2014",
+        #     "ann_file": "coco/annotations/instances_train2014.json"
+        # },
+        # "coco_2014_val": {
+        #     "img_dir": "coco/val2014",
+        #     "ann_file": "coco/annotations/instances_val2014.json"
+        # },
+        # "coco_2014_minival": {
+        #     "img_dir": "coco/val2014",
+        #     "ann_file": "coco/annotations/instances_minival2014.json"
+        # },
+        # "coco_2014_valminusminival": {
+        #     "img_dir": "coco/val2014",
+        #     "ann_file": "coco/annotations/instances_valminusminival2014.json"
+        # },
+        # "keypoints_coco_2014_train": {
+        #     "img_dir": "coco/train2014",
+        #     "ann_file": "coco/annotations/person_keypoints_train2014.json",
+        # },
+        # "keypoints_coco_2014_val": {
+        #     "img_dir": "coco/val2014",
+        #     "ann_file": "coco/annotations/person_keypoints_val2014.json"
+        # },
+        # "keypoints_coco_2014_minival": {
+        #     "img_dir": "coco/val2014",
+        #     "ann_file": "coco/annotations/person_keypoints_minival2014.json",
+        # },
+        # "keypoints_coco_2014_valminusminival": {
+        #     "img_dir": "coco/val2014",
+        #     "ann_file": "coco/annotations/person_keypoints_valminusminival2014.json",
+        # },
+        # "voc_2007_train": {
+        #     "data_dir": "voc/VOC2007",
+        #     "split": "train"
+        # },
+        # "voc_2007_train_cocostyle": {
+        #     "img_dir": "voc/VOC2007/JPEGImages",
+        #     "ann_file": "voc/VOC2007/Annotations/pascal_train2007.json"
+        # },
+        # "voc_2007_val": {
+        #     "data_dir": "voc/VOC2007",
+        #     "split": "val"
+        # },
+        # "voc_2007_val_cocostyle": {
+        #     "img_dir": "voc/VOC2007/JPEGImages",
+        #     "ann_file": "voc/VOC2007/Annotations/pascal_val2007.json"
+        # },
+        # "voc_2007_test": {
+        #     "data_dir": "voc/VOC2007",
+        #     "split": "test"
+        # },
+        # "voc_2007_test_cocostyle": {
+        #     "img_dir": "voc/VOC2007/JPEGImages",
+        #     "ann_file": "voc/VOC2007/Annotations/pascal_test2007.json"
+        # },
+        # "voc_2012_train": {
+        #     "data_dir": "voc/VOC2012",
+        #     "split": "train"
+        # },
+        # "voc_2012_train_cocostyle": {
+        #     "img_dir": "voc/VOC2012/JPEGImages",
+        #     "ann_file": "voc/VOC2012/Annotations/pascal_train2012.json"
+        # },
+        # "voc_2012_val": {
+        #     "data_dir": "voc/VOC2012",
+        #     "split": "val"
+        # },
+        # "voc_2012_val_cocostyle": {
+        #     "img_dir": "voc/VOC2012/JPEGImages",
+        #     "ann_file": "voc/VOC2012/Annotations/pascal_val2012.json"
+        # },
+        # "voc_2012_test": {
+        #     "data_dir": "voc/VOC2012",
+        #     "split": "test"
+        #     # PASCAL VOC2012 doesn't made the test annotations available, so there's no json annotation
+        # },
+        # "cityscapes_fine_instanceonly_seg_train_cocostyle": {
+        #     "img_dir": "cityscapes/images",
+        #     "ann_file": "cityscapes/annotations/instancesonly_filtered_gtFine_train.json"
+        # },
+        # "cityscapes_fine_instanceonly_seg_val_cocostyle": {
+        #     "img_dir": "cityscapes/images",
+        #     "ann_file": "cityscapes/annotations/instancesonly_filtered_gtFine_val.json"
+        # },
+        # "cityscapes_fine_instanceonly_seg_test_cocostyle": {
+        #     "img_dir": "cityscapes/images",
+        #     "ann_file": "cityscapes/annotations/instancesonly_filtered_gtFine_test.json"
+        # }
     }
 
     @staticmethod
     def get(name):
         if "coco" in name:
+            """
+                DatasetCatalog.DATA_DIR : '/home/nku524/dl/dataset/'
+            """
             data_dir = DatasetCatalog.DATA_DIR
             attrs = DatasetCatalog.DATASETS[name]
             args = dict(

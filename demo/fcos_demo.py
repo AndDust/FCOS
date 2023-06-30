@@ -12,19 +12,19 @@ def main():
     parser = argparse.ArgumentParser(description="PyTorch Object Detection Webcam Demo")
     parser.add_argument(
         "--config-file",
-        default="configs/fcos/fcos_imprv_R_50_FPN_1x.yaml",
+        default="/home/nku524/dl/codebase/FCOS/fcos/configs/fcos_imprv_R_50_FPN_1x.yaml",
         metavar="FILE",
         help="path to config file",
     )
     parser.add_argument(
         "--weights",
-        default="FCOS_imprv_R_50_FPN_1x.pth",
+        default="/home/nku524/dl/codebase/FCOS/weights/FCOS_imprv_R_50_FPN_1x.pth",
         metavar="FILE",
         help="path to the trained model",
     )
     parser.add_argument(
         "--images-dir",
-        default="demo/images",
+        default="/home/nku524/dl/codebase/FCOS/demo/images",
         metavar="DIR",
         help="path to demo images directory",
     )
