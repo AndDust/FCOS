@@ -58,7 +58,9 @@ def boxlist_ml_nms(boxlist, nms_thresh, max_proposals=-1,
     boxlist = boxlist[keep]
     return boxlist.convert(mode)
 
-
+"""
+    移除小尺寸框
+"""
 def remove_small_boxes(boxlist, min_size):
     """
     Only keep boxes with both sides >= min_size
@@ -144,7 +146,7 @@ def cat_boxlist(bboxes):
     mode = bboxes[0].mode
     assert all(bbox.mode == mode for bbox in bboxes)
 
-    fields = set(bboxes[0].fields())
+    fields = set(bboxes[0].fields()) # 这里的fields = set(bboxes[0].fields())利用了set函数，它可以删除重复数据
     assert all(set(bbox.fields()) == fields for bbox in bboxes)
 
     cat_boxes = BoxList(_cat([bbox.bbox for bbox in bboxes], dim=0), size, mode)

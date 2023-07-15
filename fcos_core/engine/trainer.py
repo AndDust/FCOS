@@ -54,7 +54,15 @@ def do_train(
     start_training_time = time.time()
     end = time.time()
     pytorch_1_1_0_or_later = is_pytorch_1_1_0_or_later()
+
+    """
+        16张图像作为一个batch
+        len(images.image_sizes) : 16
+        
+        start_iter ： 0
+    """
     for iteration, (images, targets, _) in enumerate(data_loader, start_iter):
+        # 统计一次迭代的时间
         data_time = time.time() - end
         iteration = iteration + 1
         arguments["iteration"] = iteration
@@ -63,9 +71,13 @@ def do_train(
         if not pytorch_1_1_0_or_later:
             scheduler.step()
 
+        # 把图片和标签数据都移到GPU
         images = images.to(device)
         targets = [target.to(device) for target in targets]
 
+        """
+            # 模型返回损失，开始反向传播
+        """
         loss_dict = model(images, targets)
 
         losses = sum(loss for loss in loss_dict.values())

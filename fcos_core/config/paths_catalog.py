@@ -166,6 +166,7 @@ class ModelCatalog(object):
         "37697547/e2e_keypoint_rcnn_R-50-FPN_1x": "08_42_54.kdzV35ao"
     }
 
+    # 静态方法，和类本身没有关系,逻辑关系在一起，便于使用和维护。
     @staticmethod
     def get(name):
         if name.startswith("Caffe2Detectron/COCO"):

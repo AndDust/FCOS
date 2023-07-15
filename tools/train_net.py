@@ -26,10 +26,15 @@ from fcos_core.utils.imports import import_file
 from fcos_core.utils.logger import setup_logger
 from fcos_core.utils.miscellaneous import mkdir
 
-
+"""
+    返回一个model
+"""
 def train(cfg, local_rank, distributed):
+
+    # 根据配置文件构建检测模型
     model = build_detection_model(cfg)
     device = torch.device(cfg.MODEL.DEVICE)
+    # 模型数据移到GPU
     model.to(device)
 
     if cfg.MODEL.USE_SYNCBN:
@@ -37,6 +42,7 @@ def train(cfg, local_rank, distributed):
             "SyncBatchNorm is only available in pytorch >= 1.1.0"
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
 
+    # 定义优化器
     optimizer = make_optimizer(cfg, model)
     scheduler = make_lr_scheduler(cfg, optimizer)
 
@@ -50,6 +56,7 @@ def train(cfg, local_rank, distributed):
     arguments = {}
     arguments["iteration"] = 0
 
+    # 文件输出路径
     output_dir = cfg.OUTPUT_DIR
 
     save_to_disk = get_rank() == 0
@@ -68,6 +75,7 @@ def train(cfg, local_rank, distributed):
 
     checkpoint_period = cfg.SOLVER.CHECKPOINT_PERIOD
 
+    # 开始训练
     do_train(
         model,
         data_loader,
@@ -116,6 +124,47 @@ def run_test(cfg, model, distributed):
 
 def main():
     parser = argparse.ArgumentParser(description="PyTorch Object Detection Training")
+#     FCOS with improvements
+#     MODEL:
+#     META_ARCHITECTURE: "GeneralizedRCNN"
+#     WEIGHT: "catalog://ImageNetPretrained/MSRA/R-50"
+#     RPN_ONLY: True
+#     FCOS_ON: True
+#     BACKBONE:
+#     CONV_BODY: "R-50-FPN-RETINANET"
+#
+# RESNETS:
+# BACKBONE_OUT_CHANNELS: 256
+# RETINANET:
+# USE_C5: False  # FCOS uses P5 instead of C5
+# FCOS:
+# # normalizing the regression targets with FPN strides
+# NORM_REG_TARGETS: True
+# # positioning centerness on the regress branch.
+# # Please refer to https://github.com/tianzhi0549/FCOS/issues/89#issuecomment-516877042
+# CENTERNESS_ON_REG: True
+# # using center sampling and GIoU.
+# # Please refer to https://github.com/yqyao/FCOS_PLUS
+# CENTER_SAMPLING_RADIUS: 1.5
+# IOU_LOSS_TYPE: "giou"
+# DATASETS:
+# TRAIN: ("coco_2017_train",)
+# TEST: ("coco_2017_val",)
+# INPUT:
+# MIN_SIZE_TRAIN: (800,)
+# MAX_SIZE_TRAIN: 1333
+# MIN_SIZE_TEST: 800
+# MAX_SIZE_TEST: 1333
+# DATALOADER:
+# SIZE_DIVISIBILITY: 32
+# SOLVER:
+# BASE_LR: 0.01
+# WEIGHT_DECAY: 0.0001
+# STEPS: (60000, 80000)
+# MAX_ITER: 90000
+# IMS_PER_BATCH: 16
+# WARMUP_METHOD: "constant"
+
     parser.add_argument(
         "--config-file",
         default="/home/nku524/dl/codebase/FCOS/fcos/configs/fcos_imprv_R_50_FPN_1x.yaml",
@@ -139,6 +188,10 @@ def main():
 
     args = parser.parse_args()
 
+    """
+        # 如果是多机多卡的机器，WORLD_SIZE代表使用的机器数，RANK对应第几台机器
+        # 如果是单机多卡的机器，WORLD_SIZE代表有几块GPU，RANK和LOCAL_RANK代表第几块GPU
+    """
     num_gpus = int(os.environ["WORLD_SIZE"]) if "WORLD_SIZE" in os.environ else 1
     args.distributed = num_gpus > 1
 
@@ -170,6 +223,9 @@ def main():
         logger.info(config_str)
     logger.info("Running with config:\n{}".format(cfg))
 
+    """
+        
+    """
     model = train(cfg, args.local_rank, args.distributed)
 
     if not args.skip_test:

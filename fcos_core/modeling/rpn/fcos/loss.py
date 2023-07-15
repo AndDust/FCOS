@@ -39,17 +39,23 @@ class FCOSLossComputation(object):
 
     def __init__(self, cfg):
         self.cls_loss_func = SigmoidFocalLoss(
-            cfg.MODEL.FCOS.LOSS_GAMMA,
-            cfg.MODEL.FCOS.LOSS_ALPHA
+            cfg.MODEL.FCOS.LOSS_GAMMA,  # 默认2.0
+            cfg.MODEL.FCOS.LOSS_ALPHA # 默认0.25
         )
+        # 各层特征相对于输入图像的下采样倍数 [8, 16, 32, 64, 128]
         self.fpn_strides = cfg.MODEL.FCOS.FPN_STRIDES
+        # 中心采样半径 通常是1.5 它会乘以各层的下采样步长
         self.center_sampling_radius = cfg.MODEL.FCOS.CENTER_SAMPLING_RADIUS
+        # IoU Loss 类型："iou", "linear_iou" or "giou"
         self.iou_loss_type = cfg.MODEL.FCOS.IOU_LOSS_TYPE
+        # 是否使用normalizing regression targets策略
+        # (会对回归标签使用下采样步长进行归一化)
         self.norm_reg_targets = cfg.MODEL.FCOS.NORM_REG_TARGETS
 
         # we make use of IOU Loss for bounding boxes regression,
         # but we found that L1 in log scale can yield a similar performance
         self.box_reg_loss_func = IOULoss(self.iou_loss_type)
+        # 注意这里的reduction，因为在真正计算这项loss时要除以正样本数量去求均值
         self.centerness_loss_func = nn.BCEWithLogitsLoss(reduction="sum")
 
     def get_sample_region(self, gt, strides, num_points_per, gt_xs, gt_ys, radius=1.0):
@@ -220,7 +226,13 @@ class FCOSLossComputation(object):
             centerness_loss (Tensor)
         """
         N = box_cls[0].size(0)
+        # (前景)类别数量
         num_classes = box_cls[0].size(1)
+        # 1. 标签分配
+
+        # 两个list，len=num_levels，
+        # list中的每项是对应特征层所有图片的特征点的类别标签和回归标签 shape分别为:
+        # (num_images*num_points_level_l,) (num_images*num_points_this_level_l,4)
         labels, reg_targets = self.prepare_targets(locations, targets)
 
         box_cls_flatten = []
@@ -228,35 +240,84 @@ class FCOSLossComputation(object):
         centerness_flatten = []
         labels_flatten = []
         reg_targets_flatten = []
+        # 以下这批list的长度都等于特征层数量 len=num_levels
+        # box_cls_flatten = []
+        # box_regression_flatten = []
+        # centerness_flatten = []
+        #
+        # labels_flatten = []
+        # reg_targets_flatten = []
+
+        # 依次处理各个特征层 以下注释中i代表第i层特征
+        # for l in range(len(labels)):
+        #     # (N,num_classes,H_i,W_i)->(N,H_i,W_i,num_classes)->(N*H_i*W_i,num_classes)
+        #     box_cls_flatten.append(box_cls[l].permute(0, 2, 3, 1).reshape(-1, num_classes))
+        #     # (N,4,H_i,W_i)->(N,H_i,W_i,4)->(N*H_i*W_i,4)
+        #     box_regression_flatten.append(box_regression[l].permute(0, 2, 3, 1).reshape(-1, 4))
+        #     # (N,1,H_i,W_i)->(N*H_i*W_i)
+        #     centerness_flatten.append(centerness[l].reshape(-1))
+        #
+        #     # (N*H_i*W_i)
+        #     labels_flatten.append(labels[l].reshape(-1))
+        #     # (N*H_i*W_i,4)
+        #     reg_targets_flatten.append(reg_targets[l].reshape(-1, 4))
+
+        # 2.1 permute & flatten
+
+        # 以上注释掉的部分是原作写法，个人感觉用列表生成式更简洁看起来舒服些
         for l in range(len(labels)):
             box_cls_flatten.append(box_cls[l].permute(0, 2, 3, 1).reshape(-1, num_classes))
             box_regression_flatten.append(box_regression[l].permute(0, 2, 3, 1).reshape(-1, 4))
             labels_flatten.append(labels[l].reshape(-1))
             reg_targets_flatten.append(reg_targets[l].reshape(-1, 4))
             centerness_flatten.append(centerness[l].reshape(-1))
+        # 2.2 concat
 
+        # 将所有特征层(所有图片)的预测结果拼接在一起
+        # (num_points_all_levels_batches,num_classes)
         box_cls_flatten = torch.cat(box_cls_flatten, dim=0)
+        # (num_points_all_levels_batches,4)
         box_regression_flatten = torch.cat(box_regression_flatten, dim=0)
+        # (num_points_all_levels_batches,)
         centerness_flatten = torch.cat(centerness_flatten, dim=0)
+
+        # 将所有特征层(所有图片)的标签拼接在一起
+        # (num_points_all_levels_batches,)
         labels_flatten = torch.cat(labels_flatten, dim=0)
+        # (num_points_all_levels_batches,4)
         reg_targets_flatten = torch.cat(reg_targets_flatten, dim=0)
 
-        pos_inds = torch.nonzero(labels_flatten > 0).squeeze(1)
+        # 3. 获取正样本的回归预测和centerness预测(因为回归损失和centerness损失仅对正样本计算)
 
+        # (num_pos,) 正样本(特征点)索引
+        # torch.nonzero(labels_flatten > 0)返回的shape是(num_points_all_levels_batches,1)
+        pos_inds = torch.nonzero(labels_flatten > 0).squeeze(1)
+        # (num_pos,4) 正样本对应的回归预测
         box_regression_flatten = box_regression_flatten[pos_inds]
         reg_targets_flatten = reg_targets_flatten[pos_inds]
+        # (num_pos,) 正样本对应的centerness预测
         centerness_flatten = centerness_flatten[pos_inds]
+        # (num_pos,4)
+        # reg_targets_flatten = reg_targets_flatten[pos_inds]
 
+        # 4. 计算分类损失(正负样本都要计算)
+
+        # 在所有GPU上进行同步，使得每个GPU得到相同的正样本数量，是一个同步操作
         num_gpus = get_num_gpus()
         # sync num_pos from all gpus
-        total_num_pos = reduce_sum(pos_inds.new_tensor([pos_inds.numel()])).item()
-        num_pos_avg_per_gpu = max(total_num_pos / float(num_gpus), 1.0)
 
+        # 所有gpu上正样本数量的总和
+        total_num_pos = reduce_sum(pos_inds.new_tensor([pos_inds.numel()])).item()
+        # 所有gpu上正样本数量的均值
+        num_pos_avg_per_gpu = max(total_num_pos / float(num_gpus), 1.0)
+        # 计算分类损失 多分类Focal Loss
         cls_loss = self.cls_loss_func(
+            # (num_points_all_levels_batches,num_classes)
             box_cls_flatten,
+            # (num_points_all_levels_batches,) 注意转换成int
             labels_flatten.int()
         ) / num_pos_avg_per_gpu
-
+        # 若该批次中有正样本，则进一步计算回归与centerness损失
         if pos_inds.numel() > 0:
             centerness_targets = self.compute_centerness_targets(reg_targets_flatten)
 
