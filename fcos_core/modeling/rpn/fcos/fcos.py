@@ -262,7 +262,7 @@ class FCOSModule(torch.nn.Module):
                 centerness, images.image_sizes
             )
 
-    def _forward_train(self, locations, box_cls, box_regression, centerness, targets):
+    def  _forward_train(self, locations, box_cls, box_regression, centerness, targets):
         # 3个loss，均为标量
         loss_box_cls, loss_box_reg, loss_centerness = self.loss_evaluator(
             locations, box_cls, box_regression, centerness, targets
@@ -301,6 +301,10 @@ class FCOSModule(torch.nn.Module):
             locations.append(locations_per_level)
         return locations
 
+
+    """
+        计算的是一层特征中每点在原图中对应的位置
+    """
     def compute_locations_per_level(self, h, w, stride, device):
         """
             计算一层特征中每点在输入图像中对应的位置
