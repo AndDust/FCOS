@@ -40,7 +40,7 @@ class FCOSPostProcessor(torch.nn.Module):
         """
         super(FCOSPostProcessor, self).__init__()
         """ pre_nms_thresh : 0.05 score小于0.05的都不要 """
-        self.pre_nms_thresh = pre_nms_thresh # 阈值来筛选正负样本，根据论文中所述，大于0.05的为正样本，其余的为负样本。然后看看一共有多少个正样本
+        self.pre_nms_thresh = pre_nms_thresh  # 阈值来筛选正负样本，根据论文中所述，大于0.05的为正样本，其余的为负样本。然后看看一共有多少个正样本
         """ """
         self.pre_nms_top_n = pre_nms_top_n
         """ nms_thresh : 0.6 """

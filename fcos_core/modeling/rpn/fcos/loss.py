@@ -222,6 +222,13 @@ class FCOSLossComputation(object):
             points_all_level, targets, expanded_object_sizes_of_interest
         )
 
+        """"
+            len(labels) : 16
+            一张图片所有特征点对应的label
+            labels[0].shape : torch.Size([22400])
+            labels[1].shape : torch.Size([22400])
+            ...
+        """
         # 4. 在每张图片中，将各特征层的标签区分开
 
         # i代表第i张图片的结果
@@ -313,6 +320,8 @@ class FCOSLossComputation(object):
 
             """
                 # (num_points_all_levels,num_objects_i,4) 一张图片中所有特征点的回归标签
+                
+                得到一张图上所有层特征点距离所有GT的上下左右边界距离：
                 reg_targets_per_im.shape : torch.Size([22400, 3, 4])
             """
             reg_targets_per_im = torch.stack([l, t, r, b], dim=2)
@@ -342,14 +351,19 @@ class FCOSLossComputation(object):
                 # (num_points_all_levels,num_objects_i) bool
                 # 其中每项代表特征点j是否在物体i的gt box内 只需要min(l,t,r,b) > 0
                 """
+                    只要特征点距离这个GT上下边界距离中的最小值是大于0的，那么就一定在这个GT内
                     is_in_boxes :
-                    tensor([[False, False],
-                            [False, False],
-                            [True, False],
+                    tensor([[False, False, False,  ..., False, False, False],
+                            [False, False, False,  ..., False, False, False],
+                            [False, False, False,  ..., False, False, False],
                             ...,
-                            [False, False],
-                            [False, False],
-                            [False, False]]
+                            [False, False, False,  ..., False, False, False]
+                            
+                    torch.return_types.min(
+                        values=tensor([-121.4882, -616.8666, -599.8500, -591.2667, -597.8167, -580.6666,
+                                        -596.9666, -908.0296, -627.0166, -976.8199, -615.8167, -606.1333,
+                                        -621.2500, -967.2426], device='cuda:0'),
+                        indices=tensor([0, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0], device='cuda:0'))
                 """
                 is_in_boxes = reg_targets_per_im.min(dim=2)[0] > 0
 
@@ -452,9 +466,18 @@ class FCOSLossComputation(object):
         locations[0].shape : torch.Size([16800, 2])
         locations是每一层在原图尺寸上特征点对应的位置!
         
-        box_cls[0].shape : torch.Size([16, 80, 100, 168])
+        len(box_cls) : 5
+        box_cls[0].shape : torch.Size([16, 80, 152, 100])
+        box_cls[1].shape : torch.Size([16, 80, 76, 50])
+        box_cls[2].shape : torch.Size([16, 80, 38, 25])
+        box_cls[3].shape : torch.Size([16, 80, 19, 13])
+        box_cls[4].shape : torch.Size([16, 80, 10, 7])
+        
+        同理：
         box_regression[0].shape : torch.Size([16, 4, 100, 168])
+        ...
         centerness[0].shape : torch.Size([16, 1, 100, 168])
+        ...
     """
     def __call__(self, locations, box_cls, box_regression, centerness, targets):
         """
@@ -487,14 +510,14 @@ class FCOSLossComputation(object):
             # list中的每项是对应特征层所有图片的特征点的类别标签和回归标签 shape分别为:
             # (num_images * num_points_level_l,) (num_images * num_points_this_level_l,4)
             
-            labels:
+            len(labels) : 5
             labels[0].shape : torch.Size([243200])
             labels[1].shape : torch.Size([60800])
             labels[2].shape : torch.Size([15200])
             labels[3].shape : torch.Size([3952])
             labels[4].shape : torch.Size([1120])
             
-            reg_targets:
+            len(reg_targets) : 5
             reg_targets[0].shape : torch.Size([243200, 4])
             reg_targets[1].shape : torch.Size([60800, 4])
             reg_targets[2].shape : torch.Size([15200, 4])
@@ -507,6 +530,7 @@ class FCOSLossComputation(object):
         box_cls_flatten = []
         box_regression_flatten = []
         centerness_flatten = []
+
         labels_flatten = []
         reg_targets_flatten = []
         # 以下这批list的长度都等于特征层数量 len=num_levels
@@ -544,16 +568,37 @@ class FCOSLossComputation(object):
 
         # 将所有特征层(所有图片)的预测结果拼接在一起
         # (num_points_all_levels_batches,num_classes)
+        """
+            16张图片所有层（5）上所有特征点预测的80个分类概率
+            # (num_points_all_levels_batches,num_classes)
+            box_cls_flatten.shape : torch.Size([324272, 80])
+        """
         box_cls_flatten = torch.cat(box_cls_flatten, dim=0)
         # (num_points_all_levels_batches,4)
+        """
+            16张图片所有层（5）上所有特征点预测的4个l t b r
+            # (num_points_all_levels_batches,4)
+            box_regression_flatten.shape : torch.Size([324272, 4])
+        """
         box_regression_flatten = torch.cat(box_regression_flatten, dim=0)
         # (num_points_all_levels_batches,)
+        """
+            16张图片所有层（5）上所有特征点预测的centerness
+            (num_points_all_levels_batches,)
+            centerness_flatten.shape : torch.Size([324272])
+        """
         centerness_flatten = torch.cat(centerness_flatten, dim=0)
 
         # 将所有特征层(所有图片)的标签拼接在一起
         # (num_points_all_levels_batches,)
+        """
+            16张图片所有层（5）上所有特征点匹配的label
+        """
         labels_flatten = torch.cat(labels_flatten, dim=0)
         # (num_points_all_levels_batches,4)
+        """
+            16张图片所有层（5）上所有特征点匹配的GT，计算出来的l t b r
+        """
         reg_targets_flatten = torch.cat(reg_targets_flatten, dim=0)
 
         # 3. 获取正样本的回归预测和centerness预测(因为回归损失和centerness损失仅对正样本计算)
@@ -561,7 +606,7 @@ class FCOSLossComputation(object):
         # (num_pos,) 正样本(特征点)索引
         # torch.nonzero(labels_flatten > 0)返回的shape是(num_points_all_levels_batches,1)
         pos_inds = torch.nonzero(labels_flatten > 0).squeeze(1)
-        # (num_pos,4) 正样本对应的回归预测
+        # (num_pos,4) 正样本对应的回归预测\
         box_regression_flatten = box_regression_flatten[pos_inds]
         reg_targets_flatten = reg_targets_flatten[pos_inds]
         # (num_pos,) 正样本对应的centerness预测

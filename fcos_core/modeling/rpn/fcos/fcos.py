@@ -22,10 +22,10 @@ class FCOSHead(torch.nn.Module):
         # TODO: Implement the sigmoid version first.
         """
             num_classes ： 80
-            self.fpn_strides ： [8, 16, 32, 64, 128]
-            self.norm_reg_targets ： True
-            self.centerness_on_reg : True
-            self.use_dcn_in_tower : False
+            self.fpn_strides ： [8, 16, 32, 64, 128] 各层下采样步距
+            self.norm_reg_targets ： True 
+            self.centerness_on_reg : True 计算中心度使用回归分支
+            self.use_dcn_in_tower : False 
         """
         num_classes = cfg.MODEL.FCOS.NUM_CLASSES - 1
         self.fpn_strides = cfg.MODEL.FCOS.FPN_STRIDES
@@ -191,6 +191,9 @@ class FCOSModule(torch.nn.Module):
     FCOS outputs and losses. Only Test on FPN now.
     """
 
+    """
+        P3-P7层都是256通道，共用一个Head
+    """
     def __init__(self, cfg, in_channels):
         super(FCOSModule, self).__init__()
         # 检测头部，通过它获取分类、回归以及centerness的预测结果
@@ -235,9 +238,8 @@ class FCOSModule(torch.nn.Module):
         """
             # list 其中每项代表对应特征层中每点在输入图像中对应的位置: (x,y)形式
             # 每项的shape是(h_i*w_i,2)
-        """
-        """
-            计算出各特征点对应于输入图像中的位置，以便于在训练中计算loss和推理中解码出预测框位置
+
+            计算出各特征点对应于原图像中的位置，以便于在训练中计算loss和推理中解码出预测框位置
             locations:
                 tensor([
                 [   4.,    4.],
@@ -324,6 +326,18 @@ class FCOSModule(torch.nn.Module):
         shift_y = shift_y.reshape(-1)
         locations = torch.stack((shift_x, shift_y), dim=1) + stride // 2
         return locations
-
+"""
+    type(cfg) : <class 'yacs.config.CfgNode'>
+    
+    CfgNode({'MODEL': CfgNode({'RPN_ONLY': True, 'MASK_ON': False, 'FCOS_ON': True, 'RETINANET_ON': False, 'KEYPOINT_ON': False, 'DEVICE': 'cuda', 
+    'META_ARCHITECTURE': 'GeneralizedRCNN', 'CLS_AGNOSTIC_BBOX_REG': False, 'WEIGHT': 'catalog://ImageNetPretrained/MSRA/R-50', 'USE_SYNCBN': False, 
+    'BACKBONE': CfgNode({'CONV_BODY': 'R-50-FPN-RETINANET', 'FREEZE_CONV_BODY_AT': 2, 'USE_GN': False}), 'FPN': CfgNode({'USE_GN': False, 'USE_RELU': False}), 
+    'GROUP_NORM': CfgNode({'DIM_PER_GP': -1, 'NUM_GROUPS': 32, 'EPSILON': 1e-05}), 'RPN': CfgNode({'USE_FPN': False, 'ANCHOR_SIZES': (32, 64, 128, 256, 512), 
+    'ANCHOR_STRIDE': (16,), 'ASPECT_RATIOS': (0.5, 1.0, 2.0), 'STRADDLE_THRESH': 0, 'FG_IOU_THRESHOLD': 0.7, 'BG_IOU_THRESHOLD': 0.3, 'BATCH_SIZE_PER_IMAGE': 256, 
+    'POSITIVE_FRACTION': 0.5, 'PRE_NMS_TOP_N_TRAIN': 12000, 'PRE_NMS_TOP_N_TEST': 6000, 'POST_NMS_TOP_N_TRAIN': 2000, 'POST_NMS_TOP_N_TEST': 1000, 'NMS_THRESH': 0.7, 
+    'MIN_SIZE': 0, 'FPN_POST_NMS_TOP_N_TRAIN': 2000, 'FPN_POST_NMS_TOP_N_TEST': 2000, ...
+    
+    in_channels : 256
+"""
 def build_fcos(cfg, in_channels):
     return FCOSModule(cfg, in_channels)
