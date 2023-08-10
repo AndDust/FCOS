@@ -100,4 +100,23 @@ def build_backbone(cfg):
         "cfg.MODEL.BACKBONE.CONV_BODY: {} are not registered in registry".format(
             cfg.MODEL.BACKBONE.CONV_BODY
         )
+    """
+        cfg.MODEL.BACKBONE.CONV_BODY ： 'R-50-FPN-RETINANET'
+        
+        根据cfg配置的conv_body返回backbone,该backbone是之前就注册到registry.BACKBONES这个注册器中的一系列build方法，返回的都是model
+        所以这里使用时，直接根据字符串'R-50-FPN-RETINANET'将model提取出来即可。
+        
+        registry.BACKBONES:
+        {'R-101-C5': <function build_resnet_backbone at 0x7f70076e5620>, 
+        'R-101-C4': <function build_resnet_backbone at 0x7f70076e5620>, 
+        'R-50-C5': <function build_resnet_backbone at 0x7f70076e5620>, 
+        'R-50-C4': <function build_resnet_backbone at 0x7f70076e5620>, 
+        'R-152-FPN': <function build_resnet_fpn_backbone at 0x7f70076e5598>, 
+        'R-101-FPN': <function build_resnet_fpn_backbone at 0x7f70076e5598>, 
+        'R-50-FPN': <function build_resnet_fpn_backbone at 0x7f70076e5598>, 
+        'R-101-FPN-RETINANET': <function build_resnet_fpn_p3p7_backbone at 0x7f70076e5510>, 
+        'R-50-FPN-RETINANET': <function build_resnet_fpn_p3p7_backbone at 0x7f70076e5510>, 
+        'MNV2-FPN-RETINANET': <function build_mnv2_fpn_backbone at 0x7f70076e5158>, 
+        'FBNet': <function add_conv_body at 0x7f70076aa9d8>}
+    """
     return registry.BACKBONES[cfg.MODEL.BACKBONE.CONV_BODY](cfg)
