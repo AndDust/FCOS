@@ -6,6 +6,7 @@ import torch
 
 from fcos_core.utils.model_serialization import load_state_dict
 from fcos_core.utils.c2_model_loading import load_c2_format
+from fcos_core.utils.c2_model_loading import load_pth_format
 from fcos_core.utils.imports import import_file
 from fcos_core.utils.model_zoo import cache_url
 
@@ -132,6 +133,8 @@ class DetectronCheckpointer(Checkpointer):
         # convert Caffe2 checkpoint from pkl
         if f.endswith(".pkl"):
             return load_c2_format(self.cfg, f)
+        if f.endswith(".pth"):
+            return load_pth_format(self.cfg, f)
         # load native detectron.pytorch checkpoint
         loaded = super(DetectronCheckpointer, self)._load_file(f)
         if "model" not in loaded:

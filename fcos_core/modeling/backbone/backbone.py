@@ -8,6 +8,7 @@ from fcos_core.modeling.make_layers import conv_with_kaiming_uniform
 from . import fpn as fpn_module
 from . import resnet
 from . import mobilenet
+from . import swin
 
 
 @registry.BACKBONES.register("R-50-C4")
@@ -89,6 +90,31 @@ def build_mnv2_fpn_backbone(cfg):
             cfg.MODEL.FPN.USE_GN, cfg.MODEL.FPN.USE_RELU
         ),
         top_blocks=fpn_module.LastLevelP6P7(out_channels, out_channels),
+    )
+    model = nn.Sequential(OrderedDict([("body", body), ("fpn", fpn)]))
+    model.out_channels = out_channels
+    return model
+
+
+@registry.BACKBONES.register("SWIN-T-FPN")
+def build_mnv2_fpn_backbone(cfg):
+    body = swin.swin_tiny_patch4_window7_224()
+    in_channels_stage2 = 96
+    out_channels = 96
+    in_channels_p6p7 = in_channels_stage2 * 8 if cfg.MODEL.RETINANET.USE_C5 \
+        else out_channels
+    fpn = fpn_module.FPN(
+        in_channels_list=[
+            0,
+            in_channels_stage2 * 2,
+            in_channels_stage2 * 4,
+            in_channels_stage2 * 8,
+        ],
+        out_channels=out_channels,
+        conv_block=conv_with_kaiming_uniform(
+            cfg.MODEL.FPN.USE_GN, cfg.MODEL.FPN.USE_RELU
+        ),
+        top_blocks=fpn_module.LastLevelP6P7(in_channels_p6p7, out_channels),
     )
     model = nn.Sequential(OrderedDict([("body", body), ("fpn", fpn)]))
     model.out_channels = out_channels

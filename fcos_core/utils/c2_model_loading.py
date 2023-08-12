@@ -206,3 +206,10 @@ def load_resnet_c2_format(cfg, f):
 
 def load_c2_format(cfg, f):
     return C2_FORMAT_LOADER[cfg.MODEL.BACKBONE.CONV_BODY](cfg, f)
+
+# 加载swinTransformer的state_dict
+def load_pth_format(cfg, f):
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    weights_dict = torch.load(f, map_location=device)
+    state_dict = weights_dict["model"]
+    return dict(model=state_dict)

@@ -373,7 +373,7 @@ def main():
 
     parser.add_argument(
         "--config-file",
-        default="/home/nku524/dl/codebase/FCOS/fcos/configs/fcos_imprv_R_50_FPN_1x.yaml",
+        default="/home/nku524/dl/codebase/FCOS/fcos/configs/fcos_swin_FPN.yaml",
         metavar="FILE",
         help="path to config file",
         type=str,
